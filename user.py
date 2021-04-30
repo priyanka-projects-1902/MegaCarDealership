@@ -1,6 +1,20 @@
 class User:
 
+    _userInstance=None
+    userDataSet=["user_firstname","user_lastname","user_phone","user_address","user_email","user_password","user_role"]
+
+    @staticmethod 
+    def getInstance():
+      """ Static access method. """
+        if User._userinstance == None:
+            User()
+        return User._userinstance
+
     def __init__(self, fname = None, lname = None, phone = None,address = None, email = None,password = None,role = None):
+        """ Virtually private constructor. """
+        if Singleton.__instance != None:
+            raise Exception("This class is a singleton!")
+        else:
         self.fname = fname
         self.lname = lname
         self.phone = phone
@@ -8,10 +22,11 @@ class User:
         self.email=email
         self.password=password
         self.role=role
-
-    # def getUserInfo:
-    #     retrun self
-
+        user._instance = self
+    
+    def getDataSet():
+        return userDataSet
+    
     def getFirstName(self):
         return self.fname
 
@@ -29,6 +44,9 @@ class User:
 
     def getRole(self):
         return self.role
+    
+    def getPassword(self):
+        return self.password
 
     def setFirstName(self, fname):
             self.fname = fname
