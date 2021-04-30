@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS cars(
     car_model_name VARCHAR(15) NOT NULL,  
     car_model_year SMALLINT NOT NULL, 
     car_color VARCHAR(10) NOT NULL,
-    car_price DECIMAL(6, 2) NOT NULL
+    car_price DECIMAL(6, 2) NOT NULL,
+    car_quantity SMALLINT NOT NULL	
 )
 
 CREATE TABLE IF NOT EXISTS orders(
