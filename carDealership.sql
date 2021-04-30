@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users(
     user_role BOOL NOT NULL
 )
 
--- user_role BOOL NOT NULL 0 for Dealer Worker, 1 for Customer
+-- user_role BOOL NOT NULL 0 for Dealer employee, 1 for Customer
             
 
 CREATE TABLE IF NOT EXISTS cars(
