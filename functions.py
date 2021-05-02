@@ -8,23 +8,61 @@ userInfoList = ["First Name","Last Name","Phone Name","Address","eMail Id","Pass
 carInfoList=["Car Make","Car Model","Year of Manufacturing","Car Color","Car Price"]
 
 def getUserInfo():
-    newUser = User.getInstance()
-    fname = input('What is your first name? >> ')
-    newUser.setFirstName(fname)
-    lname = input('What is your last name? >> ')
-    newUser.setLastName(lname)
-    phone = input('What is your phone? >> ')
-    newUser.setPhone(phone)
-    address = input('What is your address? >> ')
-    newUser.setAddress(address)
-    email = input('What is your email? >> ')
-    newUser.setEmail(email)
-    password = input('What is your password? >> ')
-    newUser.setPassword(password)
-    role = input('What is your role [0 for employee, 1 for customer]? >> ')
-    newUser.role(role)
-    #check input sanitization
-    saveUserInfo(newUser)
+    userInput = []
+    while True:
+        
+        fname = input('What is your first name? >> ').title().lstrip().rstrip()
+        userInput.append(fname)
+        lname = input('What is your last name?  >> ').title().lstrip().rstrip()
+        userInput.append(lname)
+        phone = input('What is your phone? Include area code [5555555555] >> ').lstrip().rstrip()
+        userInput.append(phone)
+        address = input('What is your address? >> ').title().lstrip().rstrip()
+        userInput.append(address)
+        email = input('What is your email? >> ').lstrip().rstrip()
+        userInput.append(email)
+        password = input('What is your password? Max 4 characters >> ').lstrip().rstrip()
+        userInput.append(password)
+        role = int(input('What is your role [ 0 for employee, 1 for customer ]? >> ').lstrip().rstrip())
+        userInput.append(role)
+        
+        if (re.match("^\w{1,10}$", fname)):
+            # userInput.append(fname)
+            print("")
+             
+        elif (re.match("^\w{1,15}$", lname)):
+            # userInput.append(lname)
+            print("")
+
+        elif (re.match("^\d{10}$", phone)):
+            # userInput.append(phone)
+            print("")
+        
+        elif (re.match("^.{18,35}$", address)):
+            # userInput.append(address)
+            print("")
+
+        elif (re.match("^(\w|\.|\_|\-)+[@](\w|\_|\-|\.)+[.]\w{2,3}$", email)):
+            print("")
+                
+        elif (re.match("^[a-zA-Z0-9]{4}$", password)):
+            # userInput.append(password)
+            print("")
+        
+        elif (role == 0 or role == 1):
+            # userInput.append(role)
+            print("")
+
+            break    
+
+        else:
+            print("Please enter valid data!")
+
+    print(userInput)
+
+    return(userInput)
+            
+getUserInfo( )
 
 def saveUserInfo(newUser):
     if (checkUserExist(newUser.getEmail())):
