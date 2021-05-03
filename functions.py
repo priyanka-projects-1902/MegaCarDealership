@@ -1,226 +1,410 @@
 import mysql.connector
 # from connection import getConnection
 import sqlOp as sql 
-import cars as car 
-from user import User
+from cars import * 
+from user import *
+import stdiomask
 
 userInfoList = ["First Name","Last Name","Phone Name","Address","eMail Id","Password","Role"]
-carInfoList=["Car Make","Car Model","Year of Manufacturing","Car Color","Car Price"]
+userDataSet=["user_fname","user_lname","user_phone","user_address","user_email","user_password","user_role"]
+carInfoList=["Make","Model","Year of Manufacturing","Color","Price","Quantity"]
+customerServiceList=["View Available Cars","Create Account","Update Account","Delete Account","Exit"]
+sellerServiceList=["View Car Inventory","Create Account","Update Account","Update Car Inventory","Delete Account","Exit"]
+carOrderList = []
+def determineTypeofUser(fname,email):
+    #return True    
+    user_id=checkUserExist(email)
+    if(user_id):
+        userInfo=sql.readUsersInfo(user_id)
+        populateUserInfo(userInfo)
+        if(User.getInstance().getRole()):
+            #print("Existing Customer")
+            return True     #Existing Customer has logged in
+        else:
+            #print("Seller")
+            return False    #Seller Has logged in
+    else:
+        
+        newUser=User()
+        newUser.setFirstName(fname)
+        newUser.setEmail(email)
+        role=int(input("Are you and employee[0] or a customer[1] ?: "))
+        if(role):
+            newUser.setRole(role)
+            return True         #New Customer has logged in
+        else:
+            newUser.setRole(role)
+            return False   #New Seller Logged in
+
+def populateUserInfo(userInfo):
+    
+    current_User = User.getInstance()
+    current_User.setAttributes(userInfo)
+
+def showCustomerService():
+    counter=1
+    for _ in customerServiceList:
+        print(f'{counter}. {_}')
+        counter += 1
+    flag = False
+    while not flag:
+        choice=int(input(f"Please Enter your choice between [1-{counter-1}]: "))
+        if(choice < 1 or choice >= counter):
+            print("Invalid Entry..")
+        else:
+            flag = True
+    performCustService(choice)
+
+def performCustService(choice):
+    if(choice == 1):
+        ret = showAvailableCars()
+        if(ret):
+            choice = input(f'''Do you wish to make a purchase today ? 
+            Enter [Y] to continue or [N] to go back to the Menu : ''')
+            if(choice == 'Y' or choice == 'y'):
+                purchaseCar()
+            else:
+                showCustomerService()
+        else:
+            showCustomerService()
+    elif(choice == 2):
+        getUserInfo()       #can use details from determineTypeofUser()
+    elif(choice == 3):
+        updateUserInfo()
+    elif(choice == 4):
+        deleteUserInfo()
+    elif(choice == 5):
+        exitProgram()
+
+def exitProgram():
+    print()
+    print("-----------------------------------------------------")
+    print("Thank You for visiting us!! ")
+    exit()
+
+def deleteUserInfo():
+    userToDelete=User.getInstance()
+    if(userToDelete.getEmail() != None):
+        userId = sql.checkUserExist(userToDelete.getEmail()) 
+        if(userId == None):
+            print("User does not exist in the system") 
+        else:
+            sql.deleteUser(userId)
+            print("Your account no longer exist")
+
+def showSellerServices():
+    counter=1
+    for _ in sellerServiceList:
+        print(f'{counter}. {_}')
+        counter += 1
+    flag = False
+    while not flag:
+        choice=int(input(f"Please Enter your choice between [1-{counter-1}]: "))
+        if(choice < 1 or choice >= counter):
+            print("Invalid Entry..")
+        else:
+            flag = True
+    performSellerService(choice)
+
+def performSellerService(choice):
+    if(choice == 1):
+        showAvailableCars()
+    elif(choice == 2):
+        getUserInfo()       #can use details from determineTypeofUser()
+    elif(choice == 3):
+        updateUserInfo()
+    elif(choice == 4):
+        seller=User.getInstance()
+        if(seller.getEmail() != None):
+            sellerId = sql.checkUserExist(seller.getEmail()) 
+            if(sellerId == None):
+                print("Please register yourself as a employee before Updating the inventory")
+                getUserInfo() 
+            addOrRemoveCarToInventory()
+    elif(choice == 5):
+        deleteUserInfo()
+    elif(choice == 6):
+        exitProgram()
 
 def getUserInfo():
     newUser = User.getInstance()
-    fname = input('What is your first name? >> ')
-    newUser.setFirstName(fname)
-    lname = input('What is your last name? >> ')
-    newUser.setLastName(lname)
-    phone = input('What is your phone? >> ')
-    newUser.setPhone(phone)
-    address = input('What is your address? >> ')
-    newUser.setAddress(address)
-    email = input('What is your email? >> ')
-    newUser.setEmail(email)
-    password = input('What is your password? >> ')
-    newUser.setPassword(password)
-    role = input('What is your role [0 for employee, 1 for customer]? >> ')
-    newUser.role(role)
-    #check input sanitization
-    saveUserInfo(newUser)
+    if (checkUserExist(newUser.getEmail())):
+       print(f'The user {newUser.getEmail()} already exist in our system:')
+    else:
+        fname = input('What is your first name? >> ')
+        newUser.setFirstName(fname)
+        lname = input('What is your last name? >> ')
+        newUser.setLastName(lname)
+        phone = input('What is your phone? >> ')
+        newUser.setPhone(phone)
+        address = input('What is your address? >> ')
+        newUser.setAddress(address)
+        email = input('What is your email? >> ')
+        newUser.setEmail(email)
+        password = stdiomask.getpass()
+        newUser.setPassword(password)
+        role = input('What is your role [0 for employee, 1 for customer]? >> ')
+        newUser.setRole(role)
+        #check input sanitization
+        saveUserInfo(newUser)
+
+def checkUserExist(email):
+    user_id = sql.checkUserExist(email)
+    return user_id
+
+def getUserRole():
+    return (User.getInstance().getUserRole())
 
 def saveUserInfo(newUser):
-    if (checkUserExist(newUser.getEmail())):
-       print(f'The user {newUser.getEmail} already exist in our system:')
+    
+    status = sql.insertUsersInfo(newUser.getFirstName(),\
+    newUser.getLastName(),\
+    newUser.getPhone(),\
+    newUser.getAddress(),\
+    newUser.getEmail(),\
+    newUser.getPassword(),\
+    newUser.getRole())
+    if(status):
+        newUser.setId(checkUserExist(newUser.getEmail()))
+        print("Your information has been successfully saved in our system!!")
     else:
-        status = sql.insertUsersInfo(newUser.getFirstName(),\
-        newUser.getLastName(),\
-        newUser.getAddress(),\
-        newUser.getPhone(),\
-        newUser.getEmail(),\
-        newUser.getPassword(),\
-        newUser.getRole())
-        if(status):
-            print("Your information has been successfully saved in our system!!")
-        else:
-            print("Insert failed")
+        print("Insert failed")
 
 def updateUserInfo():
     userToUpdate=User.getInstance()
     if(userToUpdate.getEmail() != None):
-        userId = getUserId(userToUpdate.getEmail()) 
-        if(user_id == 0):
-            print("") #User does not exist to update
+        userId = sql.checkUserExist(userToUpdate.getEmail())
+        if(userId == None):
+            print("User does not exist in the system yet") 
         else:
             counter=1
             choice=0
-            flag = false
+            flag = False
             while not flag:
-                for entry in userInfoList:
-                    print(f"{counter}: {entry}")
+                counter=1
+                for i in range((len(userInfoList)-1)):
+                    print(f"{counter}. {userInfoList[i]}")
                     counter += 1
-                choice = input(f"What information you wish to update: ")
-                if(choice > counter or choice < 1):
-                    print(f"Invalid Choice , Please select between [1-{counter}] : ")
+                choice = int(input(f"Which information you wish to update: "))
+                if(choice >= counter or choice < 1):
+                    print(f"Invalid Choice , Please select between [1-{counter-1}] : ")
                 else:
-                    flag = True
                     feild=userDataSet[choice-1]
-                    value = input(f'Please enter the new {userInfoList[choice-1]} : ')
+                    if(feild == "user_password"):
+                        value = stdiomask.getpass()
+                    else:
+                        value = input(f'Please enter the new {userInfoList[choice-1]} : ')
                     #Check input sanitization
-                    sql.updateUsers(user_id, feild, value) 
+                    if(sql.updateUsers(userId, feild, value)):
+                        print("Information updated Successfully ")
+                    else:
+                        print("Update failed, Please recheck your information")
+                    _input=input("Do you wish to update anything else ? [Y/N]")
+                    if(_input == 'N' or _input == 'n'):
+                        flag = True
 
-    
+    else:
+        print("Your record does not exist in the system to Update, Please create a new account!! ")    
     
 
 # Display Car Inventory 
 def showAvailableCars():
-    print("We have the following cars in our inventory as of now")
+    
     carlist=sql.readCarsInfo()
-    for car in carlist:
-        print(f''' Car Id :{car[0]}
-                {carInfoList[0]}:{car[1]}
-                
-                
-                
-                
-                ''')
+    #print(carlist)
+    if(len(carlist) == 0):
+        print("We have no cars in our inventory as of now. ")
+        return False
+    else:
+        print("We have the following cars in our inventory as of now : ")
+        for car in carlist:
+            print(f'''Car #:{car[0]}
+            {carInfoList[0]}:{car[1]}
+            {carInfoList[1]}:{car[2]}
+            {carInfoList[2]}:{car[3]}
+            {carInfoList[3]}:{car[4]}
+            {carInfoList[4]}:{car[5]}
+            {carInfoList[5]}:{car[6]}      
+        ---------------------------------         
+            ''')
+        return True
 
 
-def addOrRemoveCarToInventory():
-    print("We have the following cars in our inventory :")
-    showAvailableCars()
-    flag=false
-    while not flag:
-        choice = input('''Do you wish to add/remove a similar car[0] or a new car[1].
-                Please select [0-1] : ''')
-        if(choice == 1):
-            flag=True
-            isInserted = sql.insertCarsInfo(car.make, car.model, car.year, car.color, car.price)
+def addOrRemoveCarToInventory(): #This function is for the seller to add/remove cars from inventory
+    
+    totcars=showAvailableCars()
+        
+    choice = int(input('''Do you wish to add/remove a existing car[0] or a add a new car[1].
+            Please select [0-1] : '''))
+    if(choice == 1):
+        flag=False
+        while not flag:
+            newCar=getCarDetailsFromSeller()
+            isInserted = sql.insertCarsInfo(newCar.getMake(), newCar.getModel(),\
+                    newCar.getYear(), newCar.getColor(), newCar.getPrice(),newCar.getCarQuantity())
             if(isInserted):
                 print("New car Information inserted successfully.")
-        elif(choice == 0):   
-            flag=True     
+                print("----------------------------------------")
+                ask = input("Do you wish to add another car [Y/N]: ")
+                if(ask == 'N' or ask == 'n'):
+                    flag = True                    
+    elif(choice == 0):   
+        if(totcars == 0):
+            print("There are no car records in the system to update") 
+        else:    
             updateCarquantity()
-        else:
-            print("Invalid choice ...")
+    else:
+        print("Invalid choice ...")
     
-def updateCarquantity(): #This function is for the seller to add/remove cars from inventory
-    flag = false
-    while not flag:
-        car_id= input("Please enter the id of the car whose quatity needs to be updated: ")
-        quantity = input("Enter the quantity: ")
-        ret = sql.updateCarInfo(car_id,"car_quantity",quantity)
-        if(ret):
-            choice= input('''Car Quantity Updated Successfully!!
-                     Do you wish to update quantity for another Car [Y/N] :''')
-            if(choice == 'N' or choice == 'n'):
-                flag=True
-
-
-def updateCarInfo():
-    sql.readCarsInfo()
-    choice = input("Please enter the id of the car will be updated >>> ")
-    sql.updateCarInfo()
-    while True:
-        choice = input("What information you wish to update: \n[1] for Make\n[2] for Model Name,\n[3] for Model Year\n[4] for Color\n[5] for Price")
-        if (choice == 1):
-            newmake = input('What will be the new make? >> ')
-            sql.updateUsers(user_id, car_make, newmake)   
-        elif (choice == 2):
-            newmodelname = input('What will be the new model name? >> ')
-            sql.updateUsers(user_id, car_model_name, newmodelname) 
-        elif (choice == 3):
-            newmodelyear = input('What will be the new model year? >> ')
-            sql.updateUsers(user_id, car_model_year, newmodelyear) 
-        elif (choice == 4):
-            newcolor = input('What will be the new color? >> ')
-            sql.updateUsers(user_id, car_color, newcolor) 
-        else (choice == 5):
-            newprice = input('What will be the new price? >> ')
-            sql.updateUsers(user_id, car_price, newprice) 
-    
-  
-def countCarsListed():
-    count=sql.getCarCount()
-    return count        
- 
-def purchaseCar():
-    showAvailableCars()
-    totalCars=countCarsListed()
+def updateCarquantity(): 
     flag = False
     while not flag:
-        choice=input("Select the car Id you wish to purchase : ")
-        if(choice < 1 or choice > totalCars):
-            print(f"Please select a valid car Id between [1-{totalCars}] ")
+        car_id= input("Please enter the car ID to update: ")
+        validcar=sql.getCarDetails(car_id)
+        if(validcar == 0):
+            print("Not a valid Car, Please select again..")
         else:
-            carPurchased = sql.getCarInfo(choice)
-            carInstance = new Car(carPurchased)
-            carList.append(carInstance)
-            removeCarFromInventory()
-            choice=input("Do you want to purchase another Car [Y/N] :")
-            if(choice == 'N' or choice == 'n'):
-                insertOrdersInfo()
-                flag = true
+            quantity = input("Enter the quantity: ")
+            if (quantity == 0):
+                ret = sql.deleteCars(car_id)
+            else:
+                ret = sql.updateCars(car_id,"car_quantity",quantity)
+                if(ret):
+                    choice= input('''Car Quantity Updated Successfully!!
+                            Do you wish to update quantity for another Car [Y/N] :''')
+                    if(choice == 'N' or choice == 'n'):
+                        flag=True
 
-def askUserPref():
-     print('Are there any specific details you\'re looking for to help narrow your search?')
-    inputMake = input('What is the preferred make of the car? ')
-    inputModel = input('What is the preferred model of the car? ')
-    inputYear = int(input('What is the preferred year of the car? '))
-    now = datetime.datetime.now()
-    while (inputYear < 1886 or inputYear > int(now.year)):
-        if (inputYear < 1886):
-            print(f'Cars weren\'t invented yet. Please enter a number between 1886 and {int(now.year)}')
-        elif (inputYear > int(now.year)):
-            print(f'We don\'t have any cars from the future in stock. Please enter a number between 1886 and {int(now.year)}')
-        inputYear = int(input('What is the preferred year of the car? '))
-    inputColor = input('What is the preferred color of the car? ')   
+
+  
+  
+# def countCarsListed(): #Reurns the Max car_id
+#     count=sql.getCarCount()
+#     return count         
+ 
+def purchaseCar():
+    global carOrderList
+    
+    flag = False
+    while not flag:
+        status = showAvailableCars()
+        if(status):
+            choice=int(input("Select the car Id you wish to purchase : "))
+            carPurchased = sql.getCarDetails(choice)
+            #print(carPurchased)
+            if(carPurchased == 0):
+                    print(f"Please select a valid car Id ")
+            else:            
+                carInstance = Car(carPurchased[0])
+                carOrderList.append(carInstance)
+                new_quantity = carInstance.getCarQuantity()-1
+                if(new_quantity > 0):
+                    sql.updateCars(carInstance.getCarId(),"car_quantity",new_quantity)
+                else:
+                    sql.deleteCars(carInstance.getCarId())
+                choice=input("Do you want to purchase another Car [Y/N] :")
+                if(choice == 'N' or choice == 'n'):
+                    if(User.getInstance().getId() == None):
+                        print("Please register before finalizing the order ")
+                        getUserInfo()
+                        #print("New Id=",User.getInstance().getId())
+                    # for car_p in carList:
+                    #     sql.insertOrdersInfo(User.getInstance().getId(),car_p.getCarId())
+                    flag = True
+        else:
+            flag = True
+
+    calculatePrice(carOrderList)
+
+def getCarDetailsFromSeller():
+    
+    carList=[]
+    car = Car(carList)
+    print(f'Please enter the following Car details :')
+    make = input('Car Make: ')
+    car.setMake(make)
+    model = input('Car Model: ')
+    car.setModel(model)
+    year = int(input('Year: '))
+    car.setYear(year)
+    color = input('Color: ')
+    car.setColor(color)
+    price = float(input('Price: '))
+    car.setPrice(price)
+    qty = int(input('Quantity: '))
+    car.setCarQuantity(qty)
+    return car
    
 
-def calculatePrice():
+def calculatePrice(carList):
    
     total = float(0.0)
     bonus = float(0.0)
     print('')
-    print('Getting a few more details from you to give you the best deals')
+    print('Getting a few more details from you to give you the best deals!!')
     print('')
-    isVeteran_disabled = input("Are you a war veteran or have any disability (Y/N)")
-
-    for carInstance in carList:
-        print(f'''{carInfoList[0]}: {carInstance.getMake()}
-                  {carInfoList[1]}: {carInstance.getModel()}
-                  {carInfoList[2]}: {carInstance.getYear()}
-                  {carInfoList[3]}: {carInstance.getColor()}
-                  {carInfoList[4]}: ${carInstance.getPrice()}''')               
+    isVeteranOrDisabled = input("Are you a war veteran or have any disability (Y/N): ")
+    cust= User.getInstance()
+    fname = cust.getFirstName()
+    print()
+    print("********************** Order Details *******************************")
+    print()
+    print(f'''Thank you {fname} for placing the following order with us
     
-
+Name:{fname} {cust.getLastName()}
+EmailId:{cust.getEmail()}
+Delivery Address:{cust.getAddress()} 
+    
+-----------------------------------------------------------------------
+Items Ordered : 
+-----------------------------------------------------------------------''')
+    counter =1
+    for carInstance in carList:
+                    
+        print(f'{counter}:')
+        print(f'''{carInfoList[0]}: {carInstance.getMake()}
+{carInfoList[1]}: {carInstance.getModel()}
+{carInfoList[2]}: {carInstance.getYear()}
+{carInfoList[3]}: {carInstance.getColor()}
+{carInfoList[4]}: ${carInstance.getPrice()}
+                  
+''')   
+        print('-----------------------------------------------------------------------')
+        counter +=1
         #Discount user = receive 25% off the cost of the car plus $500 bonus
-        if (isVeteran_disabled == 'y' or isVeteran_disabled == 'Y'):
-            total = carInstance.getPrice()
-            total = float(total*75/100)
-            bonus += 500.00
-            print(f'Price with veteran/disabled discount: ${total}. Bonus from car: ${bonus}')
-            print('')
+        if (isVeteranOrDisabled == 'y' or isVeteranOrDisabled == 'Y'):
+            temp = float(carInstance.getPrice())
+            total += float(temp*75/100)
+            bonus = 500.00
+            
 
         #Discount white car = receives a bonus of $400 towards the down payment
         elif (carInstance.getColor() == 'white'):
-            total = carInstance.getPrice()
-            bonus += 400.00
-            print(f'Bonus from car: ${bonus}')
-            print('')
+            total += float(carInstance.getPrice())
+            bonus = 400.00
+            
 
         #Discount black car = discount of 25% the price of the car
         elif (carInstance.getColor() == 'black'):
-            total = carInstance.getPrice()
-            total = float(total*75/100)
-            print(f'Black car discount price: ${carInstance.getPrice()}')
-            print('')
+            temp = float(carInstance.getPrice())
+            total += float(temp*75/100)
+
+        else:
+            total += float(carInstance.getPrice())
+
+        
+            
 
        
     print('')
-    print(f'Total before tax: ${total}')
-    total += round((total*1065/1000), 2)
-    print(f'Final total with 6.5% tax: ${total}')
+    print(f'Your SubTotal with discount(if any): ${total}')
+    total += round((total*6/100), 2)
+    print(f'Final total with 6% tax: ${total}')
     print(f'Bonuses: ${bonus}')
     print(f'Final total after bonus: ${total-bonus}')
     print('')
+
+    
 
 
        

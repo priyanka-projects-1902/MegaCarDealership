@@ -1,48 +1,71 @@
 import connection as c 
 import mysql.connector
 
-userlist=[]
+
 def readUsersInfo(id):
-    print("inside read")
+    #print("inside read")
     conn = c.returnConnection()
     try:
-        # userlist=[]
+        userlist=[]
         cursor = conn.cursor()
         cursor.execute(f"SELECT * FROM users where user_id = {id} ")
         for row in cursor:
             for i in row:
                 userlist.append(i)
-
-        print(userlist)
-        return userlist
+         
         cursor.close()
         conn.close()
+        return userlist
     except (Exception, mysql.connector.Error) as error:
         print('Error while fetching data from mySQL', error)
 
 
-carlist = []
+
 def readCarsInfo():
+    
     conn = c.returnConnection()
     try:
+        #carlist = []
         cursor = conn.cursor()
+        #print("select cars")
         cursor.execute(f"SELECT * FROM cars ")
-        for row in cursor:
-            for i in row:
-                carlist.append(i)
-        # for i in carlist:
-        #     print(i)
-        return carlist
-        
+        result_set = cursor.fetchall()        
+        conn.commit()      
         cursor.close()
-        conn.close()
+        conn.close()        
+        return result_set
     except (Exception, mysql.connector.Error) as error:
         print('Error while fetching data from mySQL', error)  
 
-orderlist = []
-def readOrdersInfo(id):
+
+
+
+def getCarDetails(car_id):
+    
     conn = c.returnConnection()
     try:
+        
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT * FROM cars where car_id = {car_id}")
+        result_set = cursor.fetchall()        
+        conn.commit()      
+        cursor.close()
+        conn.close() 
+
+        
+        if (len(result_set) == 0):
+            return 0
+        else:     
+            return result_set
+    except (Exception, mysql.connector.Error) as error:
+        print('Error while fetching data from mySQL', error) 
+
+
+def readOrdersInfo(id):
+    
+    conn = c.returnConnection()
+    try:
+        orderlist = []
         cursor = conn.cursor()
         cursor.execute(f"SELECT * FROM orders where order_id = {id} ")
         for row in cursor:
@@ -50,22 +73,23 @@ def readOrdersInfo(id):
                 orderlist.append(i)
         for i in orderlist:
                 print(i)        
-        return orderlist
+        
 
         cursor.close()
         conn.close()
+        return orderlist
     except (Exception, mysql.connector.Error) as error:
         print('Error while fetching data from mySQL', error)         
 
 
-def insertUsersInfo(fname, lname, address,phone, email, password, role):
+def insertUsersInfo(fname, lname,phone,address,email, password, role):
     conn = c.returnConnection()
     try:
         cursor = conn.cursor()
         cursor.execute(f"INSERT INTO users (user_fname, user_lname, user_phone, user_address, user_email, user_password, user_role) VALUES \
-                                           ('{fname}', '{lname}', '{address}', '{phone}', '{email}', '{password}', '{role}')")
+                                           ('{fname}', '{lname}', '{phone}', '{address}', '{email}', '{password}', '{role}')")
         
-        print("return = {}".format(cursor.rowcount))
+        #print("return = {}".format(cursor.rowcount))
         conn.commit()
         cursor.close()
         conn.close()
@@ -80,7 +104,7 @@ def insertCarsInfo(make, Mname, Myear, color, price, quantity):
         cursor = conn.cursor()
         cursor.execute(f"INSERT INTO cars (car_make, car_model_name, car_model_year, car_color, car_price, car_quantity) VALUES \
                                         ('{make}', '{Mname}', '{Myear}', '{color}', '{price}', '{quantity}')")
-        print("return = {}".format(cursor.rowcount))
+        #print("return = {}".format(cursor.rowcount))
         conn.commit()
         cursor.close()
         conn.close()
@@ -90,13 +114,13 @@ def insertCarsInfo(make, Mname, Myear, color, price, quantity):
 
 
 
-def insertOrdersInfo(O_id, U_id, C_id ):
+def insertOrdersInfo(U_id, C_id ):
     conn = c.returnConnection()
     try:
         cursor = conn.cursor()
-        cursor.execute(f"INSERT INTO orders (order_id, user_id, car_id) VALUES \
-                                    ('{O_id}', '{U_id}', '{C_id}')")
-        print("return = {}".format(cursor.rowcount))
+        cursor.execute(f"INSERT INTO orders (user_id, car_id) VALUES \
+                                    ('{U_id}', '{C_id}')")
+        #print("return = {}".format(cursor.rowcount))
         conn.commit()
         cursor.close()
         conn.close()
@@ -110,7 +134,7 @@ def updateUsers(id,field, value):
     try:
         cursor = conn.cursor()
         cursor.execute(f"UPDATE users SET {field}='{value}' WHERE user_id={id}")
-        print("return = {}".format(cursor.rowcount))
+        #print("return = {}".format(cursor.rowcount))
         conn.commit()
         cursor.close()
         conn.close()
@@ -125,7 +149,7 @@ def updateCars(id, field, value):
     try:
         cursor = conn.cursor()
         cursor.execute(f"UPDATE cars SET {field} = '{value}' WHERE car_id = {id}")
-        print("return = {}".format(cursor.rowcount))
+        #print("return = {}".format(cursor.rowcount))
         conn.commit()
         # readCarsInfo()
         cursor.close()
@@ -140,18 +164,20 @@ def deleteCars(id):
     try:
         cursor = conn.cursor()
         cursor.execute(f'DELETE FROM cars WHERE car_id = {id}')
-        print("return = {}".format(cursor.rowcount))
+        #print("return = {}".format(cursor.rowcount))
         conn.commit()
-        readCarsInfo()
+        
         cursor.close()
         conn.close()
+        return cursor.rowcount
     except (Exception, mysql.connector.Error) as error:
         print('Error while fetching data from mySQL', error)   
 
-purchaselist = []
+
 def getOrdersInfo(id):
     conn = c.returnConnection()
     try:
+        purchaselist = []
         cursor = conn.cursor()
         # cursor.execute({sql})
         # cursor = conn.cursor(buffered=True)
@@ -173,15 +199,24 @@ def checkUserExist(emailid):
     conn = c.returnConnection()
     try:
         cursor = conn.cursor()
-        cursor.execute(f"SELECT count(*) FROM users WHERE user_email = '{emailid}'")
+        #print(emailid)
+        cursor.execute(f"SELECT * FROM users WHERE user_email ='{emailid}'")
+        result_set = cursor.fetchall()
+        #print(cursor.rowcount)
+        #id = row[0]
         conn.commit()
-        readUsersInfo()
+        #readUsersInfo()
         cursor.close()
         conn.close()
-        return row[0]
+        for row in result_set:
+            if (row == None):
+                return 0
+            else:
+                return row[0]
 
     except (Exception, mysql.connector.Error) as error:
         print('Error while fetching data from mySQL', error) 
+
 
 def getUserId(email):
     conn = c.returnConnection()
@@ -189,12 +224,39 @@ def getUserId(email):
         cursor = conn.cursor()
         cursor.execute(f"SELECT user_id FROM users WHERE user_email = '{email}' ")
         conn.commit()
-        readUsersInfo()
         cursor.close()
         conn.close()
         return row[0]
     except (Exception, mysql.connector.Error) as error:
         print('Error while fetching data from mySQL', error)    
+
+def deleteUser(user_id):
+    conn = c.returnConnection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(f'DELETE FROM users WHERE user_id = {user_id}')
+        #print("return = {}".format(cursor.rowcount))
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        return cursor.rowcount
+    except (Exception, mysql.connector.Error) as error:
+        print('Error while fetching data from mySQL', error)  
+
+def totalCarsListed():
+    conn = c.returnConnection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT MAX(car_id) FROM cars")
+        conn.commit()
+        #readUsersInfo()
+        cursor.close()
+        conn.close()
+        return row[0]
+
+    except (Exception, mysql.connector.Error) as error:
+        print('Error while fetching data from mySQL', error) 
 
  
 
